@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/waterplasma-stage100-bolsig.yml"
+      - "tools/waterplasma_stage100_runner.py"
   workflow_dispatch:
 
 permissions:
@@ -70,7 +71,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: PAWNF001_STAGE100_OFFICIAL_BOLSIG_OUTPUTS
+          name: PAWNF001_STAGE100_OFFICIAL_BOLSIG_OUTPUTS_V2
           path: |
             work/official_outputs/**
           if-no-files-found: error
