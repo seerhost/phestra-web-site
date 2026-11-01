@@ -1,0 +1,77 @@
+name: WaterPlasma Stage 100 Official BOLSIG+
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/waterplasma-stage100-bolsig.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stage100:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch frozen collision sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p work
+          curl -fL "https://raw.githubusercontent.com/ShaoX96/ChemPlasKin/c8a0153561ecbe26177dd4f905a87356fd77af06/data/LXCat/bolsigdb_N2.dat" -o work/N2.dat
+          curl -fL "https://raw.githubusercontent.com/lucaciarimboli/progettoAPSC/feb47c236825e3e7470dd8dbbb3d58dde75675d1/data/Xsec/O2/O2.txt" -o work/O2.txt
+          test "$(git hash-object work/N2.dat)" = "f32278c02c85440cbd6f8740c217baa2c02d9c42"
+          test "$(git hash-object work/O2.txt)" = "0f77ba8fe74beef117fd28992e3ac2a6e4430c58"
+
+      - name: Download official BOLSIG+ 07/2024 from LAPLACE
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fL "https://www.bolsig.laplace.univ-tlse.fr/wp-content/uploads/2024/07/bolsigplus072024-linux.zip" -o work/bolsigplus072024-linux.zip
+          unzip -q work/bolsigplus072024-linux.zip -d work/bolsig_dist
+          find work/bolsig_dist -maxdepth 4 -type f -printf '%p\n'
+          EXE="$(find work/bolsig_dist -type f -name 'bolsigminus*' | head -n 1)"
+          test -n "$EXE"
+          chmod +x "$EXE"
+          echo "BOLSIG_EXE=$EXE" >> "$GITHUB_ENV"
+
+      - name: Frozen input generation gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tools/waterplasma_stage100_runner.py             --bolsig "$BOLSIG_EXE"             --n2 work/N2.dat             --o2 work/O2.txt             --workdir work/generated             --generate-only
+          test "$(find work/generated -maxdepth 1 -name 'BOLSIG_STAGE100_*.in' | wc -l)" -eq 12
+
+      - name: Execute official BOLSIG+ campaign
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf work/official_outputs
+          python3 tools/waterplasma_stage100_runner.py             --bolsig "$BOLSIG_EXE"             --n2 work/N2.dat             --o2 work/O2.txt             --workdir work/official_outputs
+
+      - name: Remove executable before artifact
+        if: always()
+        shell: bash
+        run: |
+          rm -rf work/bolsig_dist work/bolsigplus072024-linux.zip
+          find work -iname 'bolsigminus*' -delete || true
+
+      - name: Artifact inventory
+        if: always()
+        shell: bash
+        run: |
+          find work/official_outputs -maxdepth 2 -type f -printf '%P %s bytes\n' | sort || true
+
+      - name: Upload numerical outputs only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PAWNF001_STAGE100_OFFICIAL_BOLSIG_OUTPUTS
+          path: |
+            work/official_outputs/**
+          if-no-files-found: error
+          retention-days: 1
