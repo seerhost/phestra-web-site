@@ -121,6 +121,7 @@ def main():
     (work/"N2_STAGE100_WITH_R44.dat").write_text(n2_text, encoding="utf-8")
     shutil.copyfile(o2_src, work/"O2_COMPLETE_STAGE100.txt")
     trace_encoded = "".join(trace_b64_src.read_text(encoding="utf-8").split())
+    trace_encoded += "=" * ((4 - len(trace_encoded) % 4) % 4)
     trace_raw = gzip.decompress(base64.b64decode(trace_encoded))
     (work/"TRACKED_ZERO_DENSITY_CHANNELS.dat").write_bytes(trace_raw)
 
