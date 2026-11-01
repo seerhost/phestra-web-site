@@ -50,7 +50,7 @@ def reverse(p):
         ed=e-de
         if ed>1e-9: d.append((ed,((ed+de)/ed)*s))
     if d and d[0][0]>1e-6: d.insert(0,(max(0,d[0][0]-1e-6),0.0))
-    return dict(kind="EXCITATION",threshold=-de,data=d)
+    return dict(kind="ATTACHMENT",threshold=0.0,data=d,diagnostic_semantics="superelastic_sigma_rate_only")
 
 def ev(kind,threshold,rows):
     d=[(e,s*1e-4) for e,s in rows]
