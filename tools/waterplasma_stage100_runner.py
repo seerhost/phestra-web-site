@@ -3,12 +3,15 @@
 PAWNF001 Stage 100 official BOLSIG+ runner.
 """
 from __future__ import annotations
-import argparse, json, shutil, subprocess
+import argparse, json, shutil, subprocess, base64, gzip
 from pathlib import Path
 
 EN_MIN, EN_MAX, EN_N = 50.0, 250.0, 21
 XN2_VALUES = (0.2, 0.5, 0.8)
 TG_VALUES = (300.0, 500.0, 750.0, 1000.0)
+MISSING = ["R9","R10","R11","R12","R13","R14","R15","R16","R21","R22","R23","R24",
+           "R25","R26","R28","R29","R30","R31","R49","R50","R53","R54"]
+TRACE_SPECIES = ["TR_" + r for r in MISSING]
 
 _R44_CM2 = [
     (12,1e-18),(14,4e-18),(16,2e-17),(18,3.6e-17),(20,5.2e-17),
@@ -29,6 +32,8 @@ def r44_block() -> str:
 
 def job_text(tg: float, xn2: float, tag: str) -> str:
     xo2 = 1.0 - xn2
+    trace_names = " ".join(TRACE_SPECIES)
+    fractions = f"{xn2:.8f} {xo2:.8f} " + " ".join(["0"] * len(TRACE_SPECIES))
     return f"""NOSCREEN
 
 READCOLLISIONS
@@ -39,6 +44,11 @@ N2
 READCOLLISIONS
 O2_COMPLETE_STAGE100.txt
 O2
+1
+
+READCOLLISIONS
+TRACKED_ZERO_DENSITY_CHANNELS.dat
+{trace_names}
 1
 
 CONDITIONS
@@ -62,7 +72,7 @@ CONDITIONS
 1e-10
 1e-6
 1000
-{xn2:.8f} {xo2:.8f}
+{fractions}
 1
 
 RUNSERIES
@@ -90,6 +100,7 @@ def main():
     ap.add_argument("--bolsig", required=True)
     ap.add_argument("--n2", required=True)
     ap.add_argument("--o2", required=True)
+    ap.add_argument("--trace-b64", required=True)
     ap.add_argument("--workdir", required=True)
     ap.add_argument("--generate-only", action="store_true")
     args = ap.parse_args()
@@ -99,20 +110,26 @@ def main():
     bolsig = Path(args.bolsig).resolve()
     n2_src = Path(args.n2).resolve()
     o2_src = Path(args.o2).resolve()
+    trace_b64_src = Path(args.trace_b64).resolve()
 
-    if not n2_src.is_file() or not o2_src.is_file():
-        raise SystemExit("Frozen N2/O2 source file missing")
+    if not n2_src.is_file() or not o2_src.is_file() or not trace_b64_src.is_file():
+        raise SystemExit("Frozen N2/O2/trace source file missing")
     if not args.generate_only and not bolsig.is_file():
         raise SystemExit("Official bolsigminus executable missing")
 
     n2_text = n2_src.read_text(encoding="utf-8", errors="replace").rstrip() + "\n\n" + r44_block()
     (work/"N2_STAGE100_WITH_R44.dat").write_text(n2_text, encoding="utf-8")
     shutil.copyfile(o2_src, work/"O2_COMPLETE_STAGE100.txt")
+    trace_encoded = "".join(trace_b64_src.read_text(encoding="utf-8").split())
+    trace_raw = gzip.decompress(base64.b64decode(trace_encoded))
+    (work/"TRACKED_ZERO_DENSITY_CHANNELS.dat").write_bytes(trace_raw)
 
     manifest = {
       "stage": "100_MODERN_BOLSIG_RATE_TABLE_GENERATION",
       "authority": "official BOLSIG+ required for PASS100",
       "grid": {"EN_Td":[EN_MIN,EN_MAX,10.0], "xN2":list(XN2_VALUES), "Tg_K":list(TG_VALUES)},
+      "zero_density_diagnostic_channels": MISSING,
+      "trace_targets": TRACE_SPECIES,
       "jobs": []
     }
 
