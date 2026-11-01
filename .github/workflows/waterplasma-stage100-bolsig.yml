@@ -45,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 tools/waterplasma_stage100_runner.py             --bolsig "$BOLSIG_EXE"             --n2 work/N2.dat             --o2 work/O2.txt             --trace-b64 tools/PAWNF001_100_TRACKED_ZERO_DENSITY_CHANNELS.dat             --workdir work/generated             --generate-only
+          python3 tools/waterplasma_stage100_runner.py             --bolsig "$BOLSIG_EXE"             --n2 work/N2.dat             --o2 work/O2.txt             --trace-gz tools/PAWNF001_100_TRACKED_ZERO_DENSITY_CHANNELS.dat.gz             --workdir work/generated             --generate-only
           test "$(find work/generated -maxdepth 1 -name 'BOLSIG_STAGE100_*.in' | wc -l)" -eq 12
 
       - name: Execute official BOLSIG+ campaign
@@ -53,7 +53,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf work/official_outputs
-          python3 tools/waterplasma_stage100_runner.py             --bolsig "$BOLSIG_EXE"             --n2 work/N2.dat             --o2 work/O2.txt             --trace-b64 tools/PAWNF001_100_TRACKED_ZERO_DENSITY_CHANNELS.dat             --workdir work/official_outputs
+          python3 tools/waterplasma_stage100_runner.py             --bolsig "$BOLSIG_EXE"             --n2 work/N2.dat             --o2 work/O2.txt             --trace-gz tools/PAWNF001_100_TRACKED_ZERO_DENSITY_CHANNELS.dat.gz             --workdir work/official_outputs
 
       - name: Remove executable before artifact
         if: always()
