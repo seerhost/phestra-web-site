@@ -3,7 +3,7 @@
 PAWNF001 Stage 100 official BOLSIG+ runner.
 """
 from __future__ import annotations
-import argparse, json, shutil, subprocess, gzip
+import argparse, json, shutil, subprocess
 from pathlib import Path
 
 EN_MIN, EN_MAX, EN_N = 50.0, 250.0, 21
@@ -100,7 +100,7 @@ def main():
     ap.add_argument("--bolsig", required=True)
     ap.add_argument("--n2", required=True)
     ap.add_argument("--o2", required=True)
-    ap.add_argument("--trace-gz", required=True)
+    ap.add_argument("--trace-raw", required=True)
     ap.add_argument("--workdir", required=True)
     ap.add_argument("--generate-only", action="store_true")
     args = ap.parse_args()
@@ -110,9 +110,9 @@ def main():
     bolsig = Path(args.bolsig).resolve()
     n2_src = Path(args.n2).resolve()
     o2_src = Path(args.o2).resolve()
-    trace_gz_src = Path(args.trace_gz).resolve()
+    trace_raw_src = Path(args.trace_raw).resolve()
 
-    if not n2_src.is_file() or not o2_src.is_file() or not trace_gz_src.is_file():
+    if not n2_src.is_file() or not o2_src.is_file() or not trace_raw_src.is_file():
         raise SystemExit("Frozen N2/O2/trace source file missing")
     if not args.generate_only and not bolsig.is_file():
         raise SystemExit("Official bolsigminus executable missing")
@@ -120,8 +120,7 @@ def main():
     n2_text = n2_src.read_text(encoding="utf-8", errors="replace").rstrip() + "\n\n" + r44_block()
     (work/"N2_STAGE100_WITH_R44.dat").write_text(n2_text, encoding="utf-8")
     shutil.copyfile(o2_src, work/"O2_COMPLETE_STAGE100.txt")
-    trace_raw = gzip.decompress(trace_gz_src.read_bytes())
-    (work/"TRACKED_ZERO_DENSITY_CHANNELS.dat").write_bytes(trace_raw)
+    shutil.copyfile(trace_raw_src, work/"TRACKED_ZERO_DENSITY_CHANNELS.dat")
 
     manifest = {
       "stage": "100_MODERN_BOLSIG_RATE_TABLE_GENERATION",
