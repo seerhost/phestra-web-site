@@ -148,11 +148,16 @@ def main():
                     if dst.exists(): dst.unlink()
                     log.rename(dst)
                     rec["log"] = dst.name
-                if cp.returncode != 0:
+                out_file = work/f"BOLSIG_STAGE100_FULL_{tag}.dat"
+                log_text = dst.read_text(errors="replace") if rec.get("log") else ""
+                rec["output_exists"] = out_file.is_file()
+                rec["output_bytes"] = out_file.stat().st_size if out_file.is_file() else 0
+                rec["log_has_error"] = "error" in log_text.lower()
+                if cp.returncode != 0 or not out_file.is_file() or out_file.stat().st_size == 0 or rec["log_has_error"]:
                     manifest["jobs"].append(rec)
                     (work/"PAWNF001_100_OFFICIAL_BOLSIG_RUN_MANIFEST.json").write_text(
                         json.dumps(manifest, indent=2), encoding="utf-8")
-                    raise SystemExit(f"BOLSIG+ failed at {tag}")
+                    raise SystemExit(f"BOLSIG+ failed scientific output gate at {tag}")
             manifest["jobs"].append(rec)
 
     manifest["complete"] = True
